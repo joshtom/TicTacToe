@@ -12,47 +12,30 @@ function Square(props) {
 }
 
 class Board extends React.Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            squares: Array(9).fill(null),
-            xIsNext: true,
-        }
-    }
-    //Adding handleclick function to the board class
-    handleClick(i) {
-        const squares = this.state.squares.slice();
-        if (calculateWinner(squares) || squares[i]) {
-            return;
-        }
-        squares[i] = this.state.xIsNext ? 'X' : 'O';
-        this.setState({
-            squares: squares,
-            xIsNext : !this.state.xIsNext,
-        });
-    }
+   
   renderSquare(i) {
     return (
     <Square 
-        value={this.state.squares[i]}
-        onClick={() => this.handleClick(i)}
+        value={this.props.squares[i]}
+        onClick={() => this.props.onClick(i)}
     />
     );
   }
 
 //  changing the “status” text in Board’s render so that it displays which player has the next turn:
   render() {
-    const winner = calculateWinner(this.state.squares);
-    let status;
-    if (winner) {
-        status = 'Winner: ' + winner;
-    } else {
-        status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
+    let boardSquares = [];
+    for (let row = 0; row < 3; row++) {
+        let boardRow = [];
+        for(let col = 0; col < 3; col++) {
+            boardRow.push(<span key={(row * 3) + col}>{this.renderSquare((row * 3) + col)}</span>);
+        }
+        boardSquares.push(<div className="board-row" key={row}></div>)
     }
 
     return (
+        
       <div>
-        <div className="status">{status}</div>
         <div className="board-row">
           {this.renderSquare(0)}
           {this.renderSquare(1)}
@@ -74,15 +57,71 @@ class Board extends React.Component {
 }
 
 class Game extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            history: [{
+                squares: Array(9).fill(null),
+            }],
+            stepNumber: 0,
+            xIsNext: true,
+        }
+    }
+    //Adding handleclick function to the Game component
+    handleClick(i) {
+        const history = this.state.history.slice(0, this.state.stepNumber + 1);
+        const current = history[history.length - 1];
+        const squares = current.squares.slice();
+        if (calculateWinner(squares) || squares[i]) {
+            return;
+        }
+        squares[i] = this.state.xIsNext ? 'X' : 'O';
+        this.setState({history: history.concat([{
+            squares: squares
+        }]),
+            stepNumber : history.length,
+            xIsNext : !this.state.xIsNext,
+        });
+    }
+    jumpTo(step) {
+        this.setState({
+            stepNumber : step,
+            xIsNext : (step % 2) === 0,
+        });
+    }
   render() {
+      const history = this.state.history;
+      const current = history[this.state.stepNumber];
+      const winner = calculateWinner(current.squares);
+
+    //   Mapping over the player's history move
+    const moves = history.map((step, move) => {
+        const desc = move ?
+        'Go to move #' + move :
+        'Go to game start';
+        return (
+            <li key={move}>
+                <button onClick={() => this.jumpTo(move)}>{desc}</button>
+            </li>
+        )
+    })
+      let status;
+      if(winner) {
+          status = 'Player ' + winner + 'Wins';
+      } else {
+          status = 'Next Player: ' + (this.state.xIsNext ? 'X' : 'O');
+      }
     return (
       <div className="game">
         <div className="game-board">
-          <Board />
+          <Board 
+            squares={current.squares}
+            onClick={(i) => this.handleClick(i)}
+          />
         </div>
         <div className="game-info">
-          <div>{/* status */}</div>
-          <ol>{/* TODO */}</ol>
+          <div>{status}</div>
+          <ol>{moves}</ol>
         </div>
       </div>
     );
@@ -116,4 +155,30 @@ function calculateWinner(squares) {
     }
     return null;
 }
+// const history = [
+//     //Before the first move
+//     {
+//         squares : [
+//             null, null, null,
+//             null, null, null,
+//             null, null, null,
+//         ]
+//     },
+//      //After the first move
+//      {
+//         squares : [
+//             null, null, null,
+//             null, 'X', null,
+//             null, null, null,
+//         ]
+//     },
+//      //Before the first move
+//      {
+//         squares : [
+//             null, null, null,
+//             null, 'X', null,
+//             null, null, 'O',
+//         ]
+//     },
 
+// ]
